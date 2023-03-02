@@ -43,22 +43,33 @@ fn from_id_to_device(id: u8) -> u8 {
     0x03 * id
 }
 
-fn cmd_start(device: &libusb::DeviceHandle, socket_id: u8) {
-    let devid = from_id_to_device(socket_id);
-    let data = [devid, 0x01];
-    let count = device.write_control(
-        0x21,
-        0x09,
-        0x0300 + (devid as u16),
-        0x0,
-        &data,
-        TIMEOUT,
-    ).unwrap();
-    println!("Done: {}", count);
+enum SetStatus {
+    StatusStart = 1,
+    StatusStop = 0,
 }
 
-fn cmd_stop(_device: &libusb::DeviceHandle, _socket_id: u8) {
-    unimplemented!();
+impl SetStatus {
+    fn exec(self, device: &libusb::DeviceHandle, socket_id: u8) {
+        let devid = from_id_to_device(socket_id);
+        let data = [devid, self as u8];
+        let count = device.write_control(
+            0x21,
+            0x09,
+            0x0300 + (devid as u16),
+            0x0,
+            &data,
+            TIMEOUT,
+        ).unwrap();
+        println!("Done: {}", count);
+    }
+}
+
+fn cmd_start(device: &libusb::DeviceHandle, socket_id: u8) {
+    SetStatus::StatusStart.exec(device, socket_id);
+}
+
+fn cmd_stop(device: &libusb::DeviceHandle, socket_id: u8) {
+    SetStatus::StatusStop.exec(device, socket_id);
 }
 
 fn cmd_status(_device: &libusb::DeviceHandle, _socket_id: u8) {
