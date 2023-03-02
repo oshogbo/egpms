@@ -1,9 +1,11 @@
+extern crate libusb;
+
 use std::env;
 use std::process;
 
 struct Config {
     cmd: String,
-    device_id: u8,
+    socket_id: u8,
 }
 
 impl Config {
@@ -13,12 +15,12 @@ impl Config {
         if args.len() < 3 {
             return Err("not enough arguments");
         }
-        let device_id : u8 = match args[2].parse() {
+        let socket_id : u8 = match args[2].parse() {
             Ok(num) => num,
-            Err(_) => return Err("Device Id has to be number"),
+            Err(_) => return Err("Socket id has to be number"),
         };
 
-        Ok(Config{ cmd: args[1].clone(), device_id })
+        Ok(Config{ cmd: args[1].clone(), socket_id })
     }
 }
 
@@ -26,7 +28,7 @@ fn usage() -> ! {
     let args: Vec<String> = env::args().collect();
 
     println!("Usage: ");
-    println!("{} [status,start,stop] [device_id]", args[0]);
+    println!("{} [status,start,stop] [socket_id]", args[0]);
 
     process::exit(1);
 }
