@@ -1,0 +1,16 @@
+ugen1.2: <Gembird EG-PMS2> at usbus1, cfg=0 md=HOST spd=LOW (1.5Mbps) pwr=ON (150mA)
+
+  bLength = 0x0012 
+  bDescriptorType = 0x0001 
+  bcdUSB = 0x0110 
+  bDeviceClass = 0x0000  <Probed by interface class>
+  bDeviceSubClass = 0x0000 
+  bDeviceProtocol = 0x0000 
+  bMaxPacketSize0 = 0x0008 
+  idVendor = 0x04b4 
+  idProduct = 0xfd15 
+  bcdDevice = 0x0101 
+  iManufacturer = 0x0001  <Gembird>
+  iProduct = 0x0002  <EG-PMS2>
+  iSerialNumber = 0x0000  <no string>
+  bNumConfigurations = 0x0001 
