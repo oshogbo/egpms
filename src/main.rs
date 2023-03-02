@@ -72,8 +72,18 @@ fn cmd_stop(device: &libusb::DeviceHandle, socket_id: u8) {
     SetStatus::StatusStop.exec(device, socket_id);
 }
 
-fn cmd_status(_device: &libusb::DeviceHandle, _socket_id: u8) {
-    unimplemented!();
+fn cmd_status(device: &libusb::DeviceHandle, socket_id: u8) {
+    let mut data : [u8; 2] = [0x02, 0x00];
+    let devid = from_id_to_device(socket_id);
+    device.read_control(
+        0xa1,
+        0x01,
+        0x0300 + (devid as u16),
+        0x0,
+        &mut data,
+        TIMEOUT,
+    ).unwrap();
+    println!("Socket {} is {}", socket_id, if data[1] == 0 { "offline" } else { "online" } );
 }
 
 fn main() {
