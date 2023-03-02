@@ -19,6 +19,9 @@ impl Config {
             Ok(num) => num,
             Err(_) => return Err("Socket id has to be number"),
         };
+        if socket_id < 1 || socket_id > 4 {
+            return Err("Unknwon socket");
+        }
 
         Ok(Config{ cmd: args[1].clone(), socket_id })
     }
