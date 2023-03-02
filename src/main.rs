@@ -2,6 +2,9 @@ extern crate libusb;
 
 use std::env;
 use std::process;
+use std::time::Duration;
+
+const TIMEOUT : Duration = Duration::from_secs(1);
 
 struct Config {
     cmd: String,
@@ -36,10 +39,49 @@ fn usage() -> ! {
     process::exit(1);
 }
 
+fn from_id_to_device(id: u8) -> u8 {
+    0x03 * id
+}
+
+fn cmd_start(device: &libusb::DeviceHandle, socket_id: u8) {
+    let devid = from_id_to_device(socket_id);
+    let data = [devid, 0x01];
+    let count = device.write_control(
+        0x21,
+        0x09,
+        0x0300 + (devid as u16),
+        0x0,
+        &data,
+        TIMEOUT,
+    ).unwrap();
+    println!("Done: {}", count);
+}
+
+fn cmd_stop(_device: &libusb::DeviceHandle, _socket_id: u8) {
+    unimplemented!();
+}
+
+fn cmd_status(_device: &libusb::DeviceHandle, _socket_id: u8) {
+    unimplemented!();
+}
+
 fn main() {
     let config = Config::build().unwrap_or_else(|err| {
         println!("Error {}", err);
         println!("");
         usage();
     });
+
+    let context = libusb::Context::new().unwrap();
+    let device = context.open_device_with_vid_pid(0x04b4, 0xfd15).unwrap();
+
+    match config.cmd.as_str() {
+        "start" => cmd_start(&device, config.socket_id),
+        "stop" => cmd_stop(&device, config.socket_id),
+        "status" => cmd_status(&device, config.socket_id),
+        _ => {
+            println!("Unknwon option");
+            usage();
+        },
+    }
 }
