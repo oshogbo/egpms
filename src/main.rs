@@ -134,9 +134,10 @@ fn parse_cmd() -> Result<Box<dyn ConfigCMD>, &'static str> {
 
 fn usage() -> ! {
     let args: Vec<String> = env::args().collect();
-
     println!("Usage: ");
-    println!("{} [status,start,stop] [socket_id]", args[0]);
+    println!("{} status [socket_id]", args[0]);
+    println!("{} start   socket_id", args[0]);
+    println!("{} stop    socket_id", args[0]);
 
     process::exit(1);
 }
