@@ -87,20 +87,33 @@ impl ConfigCMD for ConfigStop {
 
 impl ConfigCMD for ConfigStatus {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
+        if args.len() == 0 {
+            return Ok(Box::new(Self { socket_id: 0 }));
+        }
         match parse_socket_id(args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
     }
     fn run(&self, device: &libusb::DeviceHandle) {
+        if self.socket_id != 0 {
+            return self.run_one(device, self.socket_id);
+        }
+        for i in 1..=4 {
+            self.run_one(device, i);
+        }
+    }
+}
+impl ConfigStatus {
+    fn run_one(&self, device: &libusb::DeviceHandle, id: u8) {
         let mut data: [u8; 2] = [0x02, 0x00];
-        let devid = from_id_to_device(self.socket_id);
+        let devid = from_id_to_device(id);
         device
             .read_control(0xa1, 0x01, 0x0300 + (devid as u16), 0x0, &mut data, TIMEOUT)
             .unwrap();
         println!(
             "Socket {} is {}",
-            self.socket_id,
+            id,
             if data[1] == 0 { "offline" } else { "online" }
         );
     }
