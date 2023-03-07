@@ -4,7 +4,7 @@ use std::env;
 use std::process;
 use std::time::Duration;
 
-const TIMEOUT : Duration = Duration::from_secs(1);
+const TIMEOUT: Duration = Duration::from_secs(1);
 
 fn from_id_to_device(id: u8) -> u8 {
     0x03 * id
@@ -19,14 +19,9 @@ impl SetStatus {
     fn exec(self, device: &libusb::DeviceHandle, socket_id: u8) {
         let devid = from_id_to_device(socket_id);
         let data = [devid, self as u8];
-        let count = device.write_control(
-            0x21,
-            0x09,
-            0x0300 + (devid as u16),
-            0x0,
-            &data,
-            TIMEOUT,
-        ).unwrap();
+        let count = device
+            .write_control(0x21, 0x09, 0x0300 + (devid as u16), 0x0, &data, TIMEOUT)
+            .unwrap();
         println!("Done: {}", count);
     }
 }
@@ -35,7 +30,7 @@ fn parse_socket_id(args: &[String]) -> Result<u8, &'static str> {
     if args.len() < 1 {
         return Err("not enough arguments");
     }
-    let socket_id : u8 = match args[0].parse() {
+    let socket_id: u8 = match args[0].parse() {
         Ok(num) => num,
         Err(_) => return Err("Socket id has to be number"),
     };
@@ -48,7 +43,9 @@ fn parse_socket_id(args: &[String]) -> Result<u8, &'static str> {
 
 trait ConfigCMD {
     fn run(&self, device: &libusb::DeviceHandle);
-    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> where Self: Sized;
+    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str>
+    where
+        Self: Sized;
 }
 
 struct ConfigStart {
@@ -66,7 +63,7 @@ struct ConfigStatus {
 impl ConfigCMD for ConfigStart {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         match parse_socket_id(args) {
-            Ok(socket_id) => Ok(Box::new(Self{socket_id})),
+            Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
     }
@@ -79,7 +76,7 @@ impl ConfigCMD for ConfigStart {
 impl ConfigCMD for ConfigStop {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         match parse_socket_id(args) {
-            Ok(socket_id) => Ok(Box::new(Self{socket_id})),
+            Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
     }
@@ -91,22 +88,19 @@ impl ConfigCMD for ConfigStop {
 impl ConfigCMD for ConfigStatus {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         match parse_socket_id(args) {
-            Ok(socket_id) => Ok(Box::new(Self{socket_id})),
+            Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
     }
     fn run(&self, device: &libusb::DeviceHandle) {
-        let mut data : [u8; 2] = [0x02, 0x00];
+        let mut data: [u8; 2] = [0x02, 0x00];
         let devid = from_id_to_device(self.socket_id);
-        device.read_control(
-            0xa1,
-            0x01,
-            0x0300 + (devid as u16),
-            0x0,
-            &mut data,
-            TIMEOUT,
-        ).unwrap();
-        println!("Socket {} is {}", self.socket_id,
+        device
+            .read_control(0xa1, 0x01, 0x0300 + (devid as u16), 0x0, &mut data, TIMEOUT)
+            .unwrap();
+        println!(
+            "Socket {} is {}",
+            self.socket_id,
             if data[1] == 0 { "offline" } else { "online" }
         );
     }
