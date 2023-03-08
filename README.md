@@ -25,13 +25,13 @@ $ egpms status
 
 * Enable socket:
 ```
-./egpms start 1
+./egpms enable 1
 
 ```
 
 * Disable socket:
 ```
-./egpms stop 1
+./egpms disable 1
 ```
 
 # ToDo

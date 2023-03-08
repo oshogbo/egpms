@@ -11,8 +11,8 @@ fn from_id_to_device(id: u8) -> u8 {
 }
 
 enum SetStatus {
-    StatusStart = 1,
-    StatusStop = 0,
+    StatusEnable = 1,
+    StatusDisable = 0,
 }
 
 impl SetStatus {
@@ -48,11 +48,11 @@ trait ConfigCMD {
         Self: Sized;
 }
 
-struct ConfigStart {
+struct ConfigEnable {
     socket_id: u8,
 }
 
-struct ConfigStop {
+struct ConfigDisable {
     socket_id: u8,
 }
 
@@ -60,7 +60,7 @@ struct ConfigStatus {
     socket_id: u8,
 }
 
-impl ConfigCMD for ConfigStart {
+impl ConfigCMD for ConfigEnable {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         match parse_socket_id(args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
@@ -69,11 +69,11 @@ impl ConfigCMD for ConfigStart {
     }
 
     fn run(&self, device: &libusb::DeviceHandle) {
-        SetStatus::StatusStart.exec(device, self.socket_id);
+        SetStatus::StatusEnable.exec(device, self.socket_id);
     }
 }
 
-impl ConfigCMD for ConfigStop {
+impl ConfigCMD for ConfigDisable {
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         match parse_socket_id(args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
@@ -81,7 +81,7 @@ impl ConfigCMD for ConfigStop {
         }
     }
     fn run(&self, device: &libusb::DeviceHandle) {
-        SetStatus::StatusStop.exec(device, self.socket_id);
+        SetStatus::StatusDisable.exec(device, self.socket_id);
     }
 }
 
@@ -125,8 +125,8 @@ fn parse_cmd() -> Result<Box<dyn ConfigCMD>, &'static str> {
         return Err("Missing cmd");
     }
     match args[1].as_str() {
-        "start" => ConfigStart::parse(&args[2..]),
-        "stop" => ConfigStop::parse(&args[2..]),
+        "enable" => ConfigEnable::parse(&args[2..]),
+        "disable" => ConfigDisable::parse(&args[2..]),
         "status" => ConfigStatus::parse(&args[2..]),
         _ => Err("Unknwon option"),
     }
@@ -136,8 +136,8 @@ fn usage() -> ! {
     let args: Vec<String> = env::args().collect();
     println!("Usage: ");
     println!("{} status [socket_id]", args[0]);
-    println!("{} start   socket_id", args[0]);
-    println!("{} stop    socket_id", args[0]);
+    println!("{} enable  socket_id", args[0]);
+    println!("{} disable socket_id", args[0]);
 
     process::exit(1);
 }
