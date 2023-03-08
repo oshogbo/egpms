@@ -4,6 +4,8 @@ EG-PMS2
 Simple driver to control EG-PMS2 surge protector with power management implemented
 in Rust. The whole implemnetation is done in user-land. (Works on FreeBSD)
 
+![EG-PMS2](egpsm.jpg "EG-PMS2")
+
 # Build
 ```
 $ cargo build -r
