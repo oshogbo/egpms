@@ -16,5 +16,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install libusb
+      run: sudo apt install libusb-1.0-0-dev
     - name: Build
       run: cargo build --verbose
