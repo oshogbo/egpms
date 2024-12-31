@@ -1,8 +1,22 @@
 use std::env;
 use std::process;
 use std::time::Duration;
+use std::io;
+use std::fs;
 
 use rusb::UsbContext;
+use serde_derive::Deserialize;
+
+#[derive(Deserialize)]
+struct Config {
+    sockets: Vec<Slot>,
+}
+
+#[derive(Deserialize)]
+struct Slot {
+    socket_id: u8,
+    name: String,
+}
 
 const TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -26,14 +40,37 @@ impl SetStatus {
     }
 }
 
-fn parse_socket_id(args: &[String]) -> Result<u8, &'static str> {
+fn read_config() -> Result<Config, io::Error> {
+    let filename = std::env::var("HOME").expect("HOME variable not set") + "/.egpms.toml";
+
+    let content = match fs::read_to_string(filename) {
+        Ok(content) => Ok(content),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(String::new()),
+        Err(e) => Err(e),
+    }?;
+
+    if content == "" {
+        return Ok(Config{sockets: vec![]});
+    }
+
+    toml::from_str(&content).map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+}
+
+fn parse_socket_id(config: &Config, args: &[String]) -> Result<u8, &'static str> {
     if args.len() < 1 {
         return Err("not enough arguments");
     }
-    let socket_id: u8 = match args[0].parse() {
-        Ok(num) => num,
-        Err(_) => return Err("Socket id has to be number"),
-    };
+
+    let socket_id: u8;
+
+    if let Ok(id) = args[0].parse::<u8>() {
+        socket_id = id;
+    } else if let Some(socket) = config.sockets.iter().find(|s| s.name == args[0]) {
+        socket_id = socket.socket_id;
+    } else {
+        return Err("Provided socket ID is invalid");
+    }
+
     if socket_id < 1 || socket_id > 4 {
         return Err("Unknwon socket");
     }
@@ -43,7 +80,7 @@ fn parse_socket_id(args: &[String]) -> Result<u8, &'static str> {
 
 trait ConfigCMD {
     fn run(&self, device: &rusb::DeviceHandle<rusb::Context>);
-    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str>
+    fn parse(config : &Config, args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str>
     where
         Self: Sized;
 }
@@ -61,8 +98,8 @@ struct ConfigStatus {
 }
 
 impl ConfigCMD for ConfigEnable {
-    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
-        match parse_socket_id(args) {
+    fn parse(config : &Config, args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
+        match parse_socket_id(config, args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
@@ -74,8 +111,8 @@ impl ConfigCMD for ConfigEnable {
 }
 
 impl ConfigCMD for ConfigDisable {
-    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
-        match parse_socket_id(args) {
+    fn parse(config : &Config, args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
+        match parse_socket_id(config, args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
@@ -86,11 +123,11 @@ impl ConfigCMD for ConfigDisable {
 }
 
 impl ConfigCMD for ConfigStatus {
-    fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
+    fn parse(config: &Config, args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str> {
         if args.len() == 0 {
             return Ok(Box::new(Self { socket_id: 0 }));
         }
-        match parse_socket_id(args) {
+        match parse_socket_id(config, args) {
             Ok(socket_id) => Ok(Box::new(Self { socket_id })),
             Err(err) => Err(err),
         }
@@ -119,15 +156,15 @@ impl ConfigStatus {
     }
 }
 
-fn parse_cmd() -> Result<Box<dyn ConfigCMD>, &'static str> {
+fn parse_cmd(config: &Config) -> Result<Box<dyn ConfigCMD>, &'static str> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         return Err("Missing cmd");
     }
     match args[1].as_str() {
-        "enable" => ConfigEnable::parse(&args[2..]),
-        "disable" => ConfigDisable::parse(&args[2..]),
-        "status" => ConfigStatus::parse(&args[2..]),
+        "enable" => ConfigEnable::parse(&config, &args[2..]),
+        "disable" => ConfigDisable::parse(&config, &args[2..]),
+        "status" => ConfigStatus::parse(&config, &args[2..]),
         _ => Err("Unknwon option"),
     }
 }
@@ -135,15 +172,21 @@ fn parse_cmd() -> Result<Box<dyn ConfigCMD>, &'static str> {
 fn usage() -> ! {
     let args: Vec<String> = env::args().collect();
     println!("Usage: ");
-    println!("{} status [socket_id]", args[0]);
-    println!("{} enable  socket_id", args[0]);
-    println!("{} disable socket_id", args[0]);
+    println!("{} status [socket_id/socket_name]", args[0]);
+    println!("{} enable  socket_id/socket_name", args[0]);
+    println!("{} disable socket_id/socket_name", args[0]);
 
     process::exit(1);
 }
 
 fn main() {
-    let cmd = parse_cmd().unwrap_or_else(|err| {
+    let config = read_config().unwrap_or_else(|err| {
+        println!("Error {}", err);
+        println!("");
+        process::exit(1);
+    });
+
+    let cmd = parse_cmd(&config).unwrap_or_else(|err| {
         println!("Error {}", err);
         println!("");
         usage();
