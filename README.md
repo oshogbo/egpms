@@ -34,13 +34,30 @@ $ egpms status
 ./egpms disable 1
 ```
 
+# Config file
+
+The tool can be configured to assign names to socket representations.
+To do this, create a `.egpms.toml` file in your `$HOME` directory:
+
+```toml
+[config]
+
+[[sockets]]
+socket_id = 1
+name = "tv"
+
+[[sockets]]
+socket_id = 2
+name = "pralka"
+```
+
 # ToDo
 
 - [ ] support multiple devices
 
 # Author
 
-Mariusz Zaborski <oshogbo@vexillium.org>
+Mariusz Zaborski <mariusz@zaborski.pl>
 
 # License
 
