@@ -1,8 +1,8 @@
-extern crate libusb;
-
 use std::env;
 use std::process;
 use std::time::Duration;
+
+use rusb::UsbContext;
 
 const TIMEOUT: Duration = Duration::from_secs(1);
 
@@ -16,7 +16,7 @@ enum SetStatus {
 }
 
 impl SetStatus {
-    fn exec(self, device: &libusb::DeviceHandle, socket_id: u8) {
+    fn exec(self, device: &rusb::DeviceHandle<rusb::Context>, socket_id: u8) {
         let devid = from_id_to_device(socket_id);
         let data = [devid, self as u8];
         let count = device
@@ -42,7 +42,7 @@ fn parse_socket_id(args: &[String]) -> Result<u8, &'static str> {
 }
 
 trait ConfigCMD {
-    fn run(&self, device: &libusb::DeviceHandle);
+    fn run(&self, device: &rusb::DeviceHandle<rusb::Context>);
     fn parse(args: &[String]) -> Result<Box<dyn ConfigCMD>, &'static str>
     where
         Self: Sized;
@@ -68,7 +68,7 @@ impl ConfigCMD for ConfigEnable {
         }
     }
 
-    fn run(&self, device: &libusb::DeviceHandle) {
+    fn run(&self, device: &rusb::DeviceHandle<rusb::Context>) {
         SetStatus::StatusEnable.exec(device, self.socket_id);
     }
 }
@@ -80,7 +80,7 @@ impl ConfigCMD for ConfigDisable {
             Err(err) => Err(err),
         }
     }
-    fn run(&self, device: &libusb::DeviceHandle) {
+    fn run(&self, device: &rusb::DeviceHandle<rusb::Context>) {
         SetStatus::StatusDisable.exec(device, self.socket_id);
     }
 }
@@ -95,7 +95,7 @@ impl ConfigCMD for ConfigStatus {
             Err(err) => Err(err),
         }
     }
-    fn run(&self, device: &libusb::DeviceHandle) {
+    fn run(&self, device: &rusb::DeviceHandle<rusb::Context>) {
         if self.socket_id != 0 {
             return self.run_one(device, self.socket_id);
         }
@@ -105,7 +105,7 @@ impl ConfigCMD for ConfigStatus {
     }
 }
 impl ConfigStatus {
-    fn run_one(&self, device: &libusb::DeviceHandle, id: u8) {
+    fn run_one(&self, device: &rusb::DeviceHandle<rusb::Context>, id: u8) {
         let mut data: [u8; 2] = [0x02, 0x00];
         let devid = from_id_to_device(id);
         device
@@ -149,7 +149,7 @@ fn main() {
         usage();
     });
 
-    let context = libusb::Context::new().unwrap();
+    let context = rusb::Context::new().unwrap();
     let device = context.open_device_with_vid_pid(0x04b4, 0xfd15).unwrap();
 
     cmd.run(&device);
